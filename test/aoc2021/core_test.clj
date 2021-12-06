@@ -2,6 +2,21 @@
   (:require [clojure.test :refer :all]
             [aoc2021.core :refer :all]))
 
+(defmacro tests-for-day [n res1t res1 res2t res2]
+  (let [dayn-part1# (symbol (str "day" n "-part1"))
+        dayn-part2# (symbol (str "day" n "-part2"))
+        dayn-test-input# (symbol (str "day" n "-test-input"))
+        dayn-input# (symbol (str "day" n "-input"))
+        dayn-part1-s# (str "Day " n " Part 1")
+        dayn-part2-s# (str "Day " n " Part 2")]
+    `(do
+       (testing ~dayn-part1-s#
+         (is (= ~res1t (~dayn-part1# ~dayn-test-input#)))
+         (is (= ~res1 (~dayn-part1# ~dayn-input#))))
+       (testing ~dayn-part2-s#
+        (is (= ~res2t (~dayn-part2# ~dayn-test-input#)))
+        (is (= ~res2 (~dayn-part2# ~dayn-input#)))))))
+
 (deftest aoc2021
   (testing "Day 1 Part 1"
     (is (= 7 (day1-part1 day1-test-input)))
