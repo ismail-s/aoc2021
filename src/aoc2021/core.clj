@@ -244,3 +244,34 @@ forward 2" (str/split-lines) (map #(str/split %1 #"\s")) (map (fn [[str num]] [(
        (frequencies)
        (filter #(> (second %) 1))
        (count)))
+
+;-------------------
+
+(def day6-test-input (edn/read-string (str "[" "3,4,3,1,2" "]")))
+
+(def day6-input (edn/read-string (str "[" (slurp "resources/day6_input.txt") "]")))
+
+(defn day6-simulate-a-day [ages]
+  {8 (get ages 0 0)
+   7 (get ages 8 0)
+   6 (+ (get ages 7 0) (get ages 0 0))
+   5 (get ages 6 0)
+   4 (get ages 5 0)
+   3 (get ages 4 0)
+   2 (get ages 3 0)
+   1 (get ages 2 0)
+   0 (get ages 1 0)})
+
+(defn day6-part1 [startAgesLst]
+  (let [startAges (frequencies startAgesLst)
+        simulations (iterate day6-simulate-a-day startAges)
+        finalSimulation (nth simulations 80)
+        total (apply + (map second finalSimulation))]
+    total))
+
+(defn day6-part2 [startAgesLst]
+  (let [startAges (frequencies startAgesLst)
+        simulations (iterate day6-simulate-a-day startAges)
+        finalSimulation (nth simulations 256)
+        total (apply + (map second finalSimulation))]
+    total))
