@@ -275,3 +275,36 @@ forward 2" (str/split-lines) (map #(str/split %1 #"\s")) (map (fn [[str num]] [(
         finalSimulation (nth simulations 256)
         total (apply + (map second finalSimulation))]
     total))
+
+;-------------------
+
+(def day7-test-input (edn/read-string (str "[" "16,1,2,0,4,2,7,1,2,14" "]")))
+
+(def day7-input (edn/read-string (str "[" (slurp "resources/day7_input.txt") "]")))
+
+(defn day7-get-fuel-for-position [horizPositionsMap position]
+  (apply + (map (fn [[p n]] (* n (Math/abs (- p position))))
+                horizPositionsMap)))
+
+(defn day7-calc-fuel2 [n]
+  (/ (* n (+ n 1)) 2))
+
+(defn day7-get-fuel2-for-position [horizPositionsMap position]
+  (apply + (map (fn [[p n]] (* n (day7-calc-fuel2 (Math/abs (- p position)))))
+                horizPositionsMap)))
+
+(defn day7-part1 [horizPositions]
+  (let [minPosition (apply min horizPositions)
+        maxPosition (apply max horizPositions)
+        horizPositionsMap (frequencies horizPositions)]
+    (->> (range minPosition (+ 1 maxPosition))
+         (map (partial day7-get-fuel-for-position horizPositionsMap))
+         (apply min))))
+
+(defn day7-part2 [horizPositions]
+  (let [minPosition (apply min horizPositions)
+        maxPosition (apply max horizPositions)
+        horizPositionsMap (frequencies horizPositions)]
+    (->> (range minPosition (+ 1 maxPosition))
+         (map (partial day7-get-fuel2-for-position horizPositionsMap))
+         (apply min))))
