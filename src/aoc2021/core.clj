@@ -1,5 +1,6 @@
 (ns aoc2021.core
   (:require [clojure.string :as str]
+            [clojure.set]
             [clojure.edn :as edn]))
 
 (defn foo
@@ -325,12 +326,37 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
                                              b (-> (subs s (inc (inc (str/index-of s "|")))) (#(str/split % #" ")))]
                                          [a b])))))
 
+(def day8-individual-example [["acedgfb" "cdfbe" "gcdfa" "fbcad" "dab" "cefabd" "cdfgeb" "eafb" "cagedb" "ab"]
+                              ["cdfeb" "fcadb" "cdfeb" "cdbaf"]])
+
 (def day8-input (->> (slurp "resources/day8_input.txt") (str/split-lines)
                      (map (fn [s] (let [a (-> (subs s 0 (str/index-of s "|")) (#(str/split % #" ")))
                                         b (-> (subs s (inc (inc (str/index-of s "|")))) (#(str/split % #" ")))]
                                     [a b])))))
 
+(defn day8-compute-output-value [[signalPatternsStr digits]]
+  (let [signalPatterns (map set signalPatternsStr)
+        one (first (filter #(= 2 (count %)) signalPatterns))
+        seven (first (filter #(= 3 (count %)) signalPatterns))
+        four (first (filter #(= 4 (count %)) signalPatterns))
+        eight (first (filter #(= 7 (count %)) signalPatterns))
+        six (first (filter #(and (= 6 (count %)) (= 1 (count (clojure.set/intersection % one)))) signalPatterns))
+        three (first (filter #(and (= 5 (count %)) (= 2 (count (clojure.set/intersection % one)))) signalPatterns))
+        two (first (filter #(and (= 5 (count %)) (= 2 (count (clojure.set/intersection % four)))) signalPatterns))
+        five (first (filter #(and (= 5 (count %)) (not (#{two three} %))) signalPatterns))
+        nine (first (filter #(and (= 6 (count %)) (empty? (clojure.set/difference three %))) signalPatterns))
+        zero (first (filter #(and (= 6 (count %)) (not (#{six nine} %))) signalPatterns))
+        digitsLst [zero one two three four five six seven eight nine]
+        [digit1 digit2 digit3 digit4] (map #(.indexOf digitsLst %) (map set digits))]
+    (+ (* 1000 digit1) (* 100 digit2) (* 10 digit3) digit4)))
+
+
+
+
 (defn day8-part1 [inp]
   (let [seconds (apply concat (map second inp))
         unique_digits (filter (fn [s] (#{2 4 3 7} (count s))) seconds)]
     (count unique_digits)))
+
+(defn day8-part2 [inp]
+  (apply + (map day8-compute-output-value inp)))

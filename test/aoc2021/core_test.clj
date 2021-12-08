@@ -49,4 +49,5 @@
     (is (= 12 (day5-part2 day5-test-input)))
     (is (= 18605 (day5-part2 day5-input))))
   (tests-for-day 6 5934 365131 26984457539 1650309278600)
-  (tests-for-day 7 37 339321 168 95476244))
+  (tests-for-day 7 37 339321 168 95476244)
+  (tests-for-day 8 26 512 61229 1091165))
