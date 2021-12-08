@@ -308,3 +308,29 @@ forward 2" (str/split-lines) (map #(str/split %1 #"\s")) (map (fn [[str num]] [(
     (->> (range minPosition (+ 1 maxPosition))
          (map (partial day7-get-fuel2-for-position horizPositionsMap))
          (apply min))))
+
+;-------------------
+
+(def day8-test-input (->> "be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb | fdgacbe cefdb cefbgd gcbe
+edbfga begcd cbg gc gcadebf fbgde acbgfd abcde gfcbed gfec | fcgedb cgb dgebacf gc
+fgaebd cg bdaec gdafb agbcfd gdcbef bgcad gfac gcb cdgabef | cg cg fdcagb cbg
+fbegcd cbd adcefb dageb afcb bc aefdc ecdab fgdeca fcdbega | efabcd cedba gadfec cb
+aecbfdg fbg gf bafeg dbefa fcge gcbea fcaegb dgceab fcbdga | gecf egdcabf bgf bfgea
+fgeab ca afcebg bdacfeg cfaedg gcfdb baec bfadeg bafgc acf | gebdcfa ecba ca fadegcb
+dbcfg fgd bdegcaf fgec aegbdf ecdfab fbedc dacgb gdcebf gf | cefg dcbef fcge gbcadfe
+bdfegc cbegaf gecbf dfcage bdacg ed bedf ced adcbefg gebcd | ed bcgafe cdgba cbgef
+egadfb cdbfeg cegd fecab cgb gbdefca cg fgcdab egfdb bfceg | gbdfcae bgc cg cgb
+gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce" (str/split-lines)
+                          (map (fn [s] (let [a (-> (subs s 0 (str/index-of s "|")) (#(str/split % #" ")))
+                                             b (-> (subs s (inc (inc (str/index-of s "|")))) (#(str/split % #" ")))]
+                                         [a b])))))
+
+(def day8-input (->> (slurp "resources/day8_input.txt") (str/split-lines)
+                     (map (fn [s] (let [a (-> (subs s 0 (str/index-of s "|")) (#(str/split % #" ")))
+                                        b (-> (subs s (inc (inc (str/index-of s "|")))) (#(str/split % #" ")))]
+                                    [a b])))))
+
+(defn day8-part1 [inp]
+  (let [seconds (apply concat (map second inp))
+        unique_digits (filter (fn [s] (#{2 4 3 7} (count s))) seconds)]
+    (count unique_digits)))
