@@ -360,3 +360,123 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
 
 (defn day8-part2 [inp]
   (apply + (map day8-compute-output-value inp)))
+
+;-------------------
+
+(def day9-test-input (->> "2199943210
+3987894921
+9856789892
+8767896789
+9899965678" (str/split-lines) (map vec) (map (fn [l] (map #(Integer/parseInt (str %)) l))) (map vec) (vec)))
+
+(def day9-input (->> (slurp "resources/day9_input.txt") (str/split-lines) (map vec) (map (fn [l] (map #(Integer/parseInt (str %)) l))) (map vec) (vec)))
+
+(defn day9-low-point? [heightmap x y]
+  (let [leftmost (= 0 x)
+        rightmost (= (count (first heightmap)) (inc x))
+        topmost (= 0 y)
+        bottommost (= (count heightmap) (inc y))
+        row (nth heightmap y)
+        col (map #(nth % x) heightmap)]
+    (and (or leftmost (< (nth row x) (nth row (- x 1))))
+         (or topmost (< (nth col y) (nth col (- y 1))))
+         (or rightmost (< (nth row x) (nth row (inc x))))
+         (or bottommost (< (nth col y) (nth col (inc y)))))))
+
+(defn day9-get-coords-around [heightmap [x y]]
+  (let [ysize (count heightmap)
+        xsize (count (first heightmap))
+        points [[(- x 1) y] [(+ x 1) y] [x (- y 1)] [x (+ y 1)]]]
+    (filter (fn [[x y]] (and (>= x 0) (>= y 0) (< x xsize) (< y ysize))) points)))
+
+
+(defn day9-get-higher-points [heightmap [x y]]
+  (let [pointsAround (day9-get-coords-around heightmap [x y])
+        currPoint (nth (nth heightmap y) x)
+        higherPoints (filter (fn [[x1 y1]] (let [point (nth (nth heightmap y1) x1)] (and (not= 9 point) (> point currPoint)))) pointsAround)
+        recurHigherPoints (apply concat (map #(day9-get-higher-points heightmap %) higherPoints))]
+    (set (concat higherPoints recurHigherPoints))))
+
+
+(defn day9-get-basin-size [heightmap point]
+  (inc (count (day9-get-higher-points heightmap point))))
+
+
+
+(defn day9-part1 [heightmap]
+  (apply + (for [y (range (count heightmap))
+                 x (range (count (first heightmap)))
+                 :when (day9-low-point? heightmap x y)]
+             (inc (nth (nth heightmap y) x)))))
+
+(defn day9-part2 [heightmap]
+  (let [lowPoints (for [y (range (count heightmap))
+                        x (range (count (first heightmap)))
+                        :when (day9-low-point? heightmap x y)]
+                    [x y])
+        basinSizes (map (partial day9-get-basin-size heightmap) lowPoints)
+        threeLargestBasins (take 3 (reverse (sort basinSizes)))]
+    (apply * threeLargestBasins)))
+
+;-------------------
+
+(def day10-test-input (->> "[({(<(())[]>[[{[]{<()<>>
+[(()[<>])]({[<{<<[]>>(
+{([(<{}[<>[]}>{[]{[(<()>
+(((({<>}<{<{<>}{[]{[]{}
+[[<[([]))<([[{}[[()]]]
+[{[{({}]{}}([{[{{{}}([]
+{<[[]]>}<{[{[{[]{()[[[]
+[<(<(<(<{}))><([]([]()
+<{([([[(<>()){}]>(<<{{
+<{([{{}}[<[[[<>{}]]]>[]]" (str/split-lines) (map (partial apply list))))
+
+(def day10-input (->> (slurp "resources/day10_input.txt") (str/split-lines) (map (partial apply list))))
+
+(defn day10-close-char [c]
+  (condp = c
+    \[ \]
+    \( \)
+    \{ \}
+    \< \>))
+
+(defn day10-open-char [c]
+  (condp = c
+    \] \[
+    \) \(
+    \} \{
+    \> \<))
+
+(defn day10-parse-line [line]
+  (loop [currChar (first line)
+         restOfLine (rest line)
+         stack '()]
+    (cond
+      (and (not currChar) (empty? stack)) [:success nil]
+      (and (not currChar) (seq stack)) [:incomplete stack]
+      (and (#{\] \) \} \>} currChar) (= (day10-open-char currChar) (first stack))) (recur (first restOfLine)  (rest restOfLine) (rest stack))
+      (and (#{\] \) \} \>} currChar) (not= (day10-open-char currChar) (first stack))) [:corrupted currChar]
+      (#{\[ \( \{ \<} currChar) (recur (first restOfLine) (rest restOfLine) (conj stack currChar)))))
+
+(defn day10-score-completion [completionLst]
+  (loop [currChar (first completionLst)
+         restOfLst (rest completionLst)
+         total 0]
+    (if currChar (recur (first restOfLst) (rest restOfLst) (+ (* 5 total) ({\( 1 \[ 2 \{ 3 \< 4} currChar)))
+        total)))
+
+(defn day10-part1 [lines]
+  (let [parsedLines (map day10-parse-line lines)
+        corruptedLines (filter #(= :corrupted (first %)) parsedLines)
+        pointsMap {\) 3 \] 57 \} 1197 \> 25137}
+        points (map #(pointsMap (second %)) corruptedLines)]
+    (apply + points)))
+
+(defn day10-part2 [lines]
+  (let [parsedLines (map day10-parse-line lines)
+        incompleteLines (filter #(= :incomplete (first %)) parsedLines)
+        completionStrs (map second incompleteLines)
+        scores (map day10-score-completion completionStrs)
+        sortedScores (vec (sort scores))
+        middleIndex (int (/ (count sortedScores) 2))]
+    (sortedScores middleIndex)))
