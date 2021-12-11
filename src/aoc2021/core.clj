@@ -1,7 +1,8 @@
 (ns aoc2021.core
   (:require [clojure.string :as str]
             [clojure.set]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [clojure.set :as set]))
 
 (defn foo
   "I don't do a whole lot."
@@ -480,3 +481,72 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
         sortedScores (vec (sort scores))
         middleIndex (int (/ (count sortedScores) 2))]
     (sortedScores middleIndex)))
+
+;-------------------
+
+(def day11-test-input (->> "5483143223
+2745854711
+5264556173
+6141336146
+6357385478
+4167524645
+2176841721
+6882881134
+4846848554
+5283751526" (str/split-lines) (map vec) (map #(map (comp edn/read-string str) %)) (map vec) (vec)))
+
+(def day11-example-input (->> "11111
+19991
+19191
+19991
+11111" (str/split-lines) (map vec) (map #(map (comp edn/read-string str) %)) (map vec) (vec)))
+
+(def day11-input (->> (slurp "resources/day11_input.txt") (str/split-lines) (map vec) (map #(map (comp edn/read-string str) %)) (map vec) (vec)))
+
+(defn day11-inc-at-coord [grid [r c]]
+  (assoc grid r (assoc (nth grid r) c (+ 1 (nth (nth grid r) c)))))
+
+(defn day11-inc-surrounding-coords [grid [r c]]
+  (let [initCoords [[(- r 1) c] [(+ r 1) c] [r (- c 1)] [r (+ c 1)]
+                    [(+ r 1) (+ c 1)] [(- r 1) (- c 1)] [(+ r 1) (- c 1)] [(- r 1) (+ c 1)]]
+        coords (filter (fn [[r c]] (and (>= r 0) (>= c 0) (< r (count grid)) (< c (count (first grid))))) initCoords)]
+    (reduce day11-inc-at-coord grid coords)))
+
+(defn day11-perform-substep2 [grid]
+  (let [allCoords (for [r (range (count grid)) c (range (count (first grid)))] [r c])
+        coordsOver9 (filter (fn [[r c]] (< 9 (nth (nth grid r) c))) allCoords)]
+    (loop [coordsOver9ToProcess coordsOver9 seenCoords (set coordsOver9) currGrid grid]
+      (let [newGrid (reduce day11-inc-surrounding-coords currGrid coordsOver9ToProcess)
+            newCoordsOver9 (filter (fn [[r c]] (< 9 (nth (nth newGrid r) c))) allCoords)
+            newCoordsOver9ToProcess (filter #(not (seenCoords %)) newCoordsOver9)
+            newSeenCoords (set/union seenCoords (set newCoordsOver9ToProcess))]
+        (if (empty? newCoordsOver9ToProcess)
+          newGrid
+          (recur newCoordsOver9ToProcess newSeenCoords newGrid))))))
+; Get all coords
+; Find all coords > 9
+; Reduce over them, adding to surrounding points
+; Find coords all > 9 not seen, and recur at 2. If none, return.
+
+(defn day11-perform-step [grid]
+  (let [substep1grid (->> grid (map #(map (partial + 1) %)) (map vec) (vec))
+        substep2grid (day11-perform-substep2 substep1grid)
+        substep3grid (->> substep2grid (map #(map (fn [n] (if (> n 9) 0 n)) %)) (map vec) (vec))]
+    substep3grid))
+
+(defn day11-count-flashes [grid]
+  (apply + (map #(count (filter (partial = 0) %)) grid)))
+
+
+(defn day11-part1 [grid]
+  (let [grids (take 101 (iterate day11-perform-step grid))
+        flashes (map day11-count-flashes grids)]
+    (apply + flashes)))
+
+(defn day11-part2 [grid]
+  (loop [step 0 grid grid]
+    (let [newGrid (day11-perform-step grid)
+          newStep (inc step)
+          all-are-zero (every? (fn [row] (every? #(= 0 %) row)) newGrid)]
+      (if all-are-zero newStep
+          (recur newStep newGrid)))))
