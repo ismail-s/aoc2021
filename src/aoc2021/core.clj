@@ -581,20 +581,32 @@ kj-dc"
             newPoints (filter #(or (not (lstAsSet %)) (all-uppercase? %)) (caveMap lastPoint))]
         (apply concat (map #(day12-get-paths-from caveMap (conj lst %) (conj lstAsSet %)) newPoints)))))
 
-(defn day12-get-extended-paths-from [caveMap lst lstAsSet caveToTryTwice]
-  (if (= "end" (last lst)) [lst]
-      (let [lastPoint (last lst)
-            newPointsFilter #(or (not (lstAsSet %))
-                                 (all-uppercase? %)
-                                 (and (= caveToTryTwice %)
-                                      (= 1 (count (filter (partial = caveToTryTwice) lst)))))
-            newPoints (filter newPointsFilter (caveMap lastPoint))]
-        (apply concat (map #(day12-get-extended-paths-from caveMap (conj lst %) (conj lstAsSet %) caveToTryTwice) newPoints)))))
+(defn day12-get-extended-paths-from [caveMap lst lstAsSet]
+  (fn [rf]
+    (fn
+      ([] (rf))
+      ([result] (rf result))
+      ([result caveToTryTwice]
+       (if (= "end" (last lst)) (rf result lst)
+           (let [lastPoint (last lst)
+                 newPointsFilter #(or (not (lstAsSet %))
+                                      (all-uppercase? %)
+                                      (and (= caveToTryTwice %)
+                                           (= 1 (count (filter (partial = caveToTryTwice) lst)))))
+                 newPoints (filter newPointsFilter (caveMap lastPoint))]
+             (reduce
+              (fn [result1 point]
+                (((day12-get-extended-paths-from caveMap (conj lst point) (conj lstAsSet point))
+                  rf)
+                 result1 caveToTryTwice))
+              result newPoints)))))))
 
 (defn day12-part1 [caveMap]
   (count (day12-get-paths-from caveMap ["start"] #{"start"})))
 
 (defn day12-part2 [caveMap]
   (let [cavesToTryTwice (->> (keys caveMap) (filter #(not (#{"start" "end"} %))) (remove all-uppercase?))
-        cavePaths (distinct (mapcat #(day12-get-extended-paths-from caveMap ["start"] #{"start"} %) cavesToTryTwice))]
-    (count cavePaths)))
+        getNumOfCavePaths (comp (day12-get-extended-paths-from caveMap ["start"] #{"start"})
+                                (distinct)
+                                (map (constantly 1)))]
+    (transduce getNumOfCavePaths + 0 cavesToTryTwice)))
