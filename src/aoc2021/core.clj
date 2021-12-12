@@ -575,26 +575,26 @@ kj-dc"
 (defn all-uppercase? [s]
   (every? #(Character/isUpperCase %) s))
 
-(defn day12-get-paths-from [caveMap lst]
+(defn day12-get-paths-from [caveMap lst lstAsSet]
   (if (= "end" (last lst)) [lst]
       (let [lastPoint (last lst)
-            newPoints (filter #(or (not ((set lst) %)) (all-uppercase? %)) (caveMap lastPoint))]
-        (apply concat (map #(day12-get-paths-from caveMap (conj lst %)) newPoints)))))
+            newPoints (filter #(or (not (lstAsSet %)) (all-uppercase? %)) (caveMap lastPoint))]
+        (apply concat (map #(day12-get-paths-from caveMap (conj lst %) (conj lstAsSet %)) newPoints)))))
 
-(defn day12-get-extended-paths-from [caveMap lst caveToTryTwice]
+(defn day12-get-extended-paths-from [caveMap lst lstAsSet caveToTryTwice]
   (if (= "end" (last lst)) [lst]
       (let [lastPoint (last lst)
-            newPointsFilter #(or (not ((set lst) %))
+            newPointsFilter #(or (not (lstAsSet %))
                                  (all-uppercase? %)
                                  (and (= caveToTryTwice %)
                                       (= 1 (count (filter (partial = caveToTryTwice) lst)))))
             newPoints (filter newPointsFilter (caveMap lastPoint))]
-        (apply concat (map #(day12-get-extended-paths-from caveMap (conj lst %) caveToTryTwice) newPoints)))))
+        (apply concat (map #(day12-get-extended-paths-from caveMap (conj lst %) (conj lstAsSet %) caveToTryTwice) newPoints)))))
 
 (defn day12-part1 [caveMap]
-  (count (day12-get-paths-from caveMap ["start"])))
+  (count (day12-get-paths-from caveMap ["start"] #{"start"})))
 
 (defn day12-part2 [caveMap]
   (let [cavesToTryTwice (->> (keys caveMap) (filter #(not (#{"start" "end"} %))) (remove all-uppercase?))
-        cavePaths (distinct (mapcat #(day12-get-extended-paths-from caveMap ["start"] %) cavesToTryTwice))]
+        cavePaths (distinct (mapcat #(day12-get-extended-paths-from caveMap ["start"] #{"start"} %) cavesToTryTwice))]
     (count cavePaths)))
