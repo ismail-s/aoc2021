@@ -550,3 +550,51 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
           all-are-zero (every? (fn [row] (every? #(= 0 %) row)) newGrid)]
       (if all-are-zero newStep
           (recur newStep newGrid)))))
+
+;-------------------
+
+(def day12-test-input (->> "dc-end
+HN-start
+start-kj
+dc-start
+dc-HN
+LN-dc
+HN-end
+kj-sa
+kj-HN
+kj-dc"
+                           (str/split-lines)
+                           (map #(str/split % #"-"))
+                           (reduce (fn [m [fst snd]] (update (update m snd (fnil conj #{} fst) nil) fst (fnil conj #{} snd) nil)) {})))
+
+(def day12-input (->> (slurp "resources/day12_input.txt")
+                      (str/split-lines)
+                      (map #(str/split % #"-"))
+                      (reduce (fn [m [fst snd]] (update (update m snd (fnil conj #{} fst) nil) fst (fnil conj #{} snd) nil)) {})))
+
+(defn all-uppercase? [s]
+  (every? #(Character/isUpperCase %) s))
+
+(defn day12-get-paths-from [caveMap lst]
+  (if (= "end" (last lst)) [lst]
+      (let [lastPoint (last lst)
+            newPoints (filter #(or (not ((set lst) %)) (all-uppercase? %)) (caveMap lastPoint))]
+        (apply concat (map #(day12-get-paths-from caveMap (conj lst %)) newPoints)))))
+
+(defn day12-get-extended-paths-from [caveMap lst caveToTryTwice]
+  (if (= "end" (last lst)) [lst]
+      (let [lastPoint (last lst)
+            newPointsFilter #(or (not ((set lst) %))
+                                 (all-uppercase? %)
+                                 (and (= caveToTryTwice %)
+                                      (= 1 (count (filter (partial = caveToTryTwice) lst)))))
+            newPoints (filter newPointsFilter (caveMap lastPoint))]
+        (apply concat (map #(day12-get-extended-paths-from caveMap (conj lst %) caveToTryTwice) newPoints)))))
+
+(defn day12-part1 [caveMap]
+  (count (day12-get-paths-from caveMap ["start"])))
+
+(defn day12-part2 [caveMap]
+  (let [cavesToTryTwice (->> (keys caveMap) (filter #(not (#{"start" "end"} %))) (remove all-uppercase?))
+        cavePaths (distinct (mapcat #(day12-get-extended-paths-from caveMap ["start"] %) cavesToTryTwice))]
+    (count cavePaths)))
