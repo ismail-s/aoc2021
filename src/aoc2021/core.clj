@@ -610,3 +610,55 @@ kj-dc"
                                 (distinct)
                                 (map (constantly 1)))]
     (transduce getNumOfCavePaths + 0 cavesToTryTwice)))
+
+;-------------------
+
+(defn day13-input-parser [inputStr]
+  (let [[coords instrs] (str/split inputStr #"\n\n" 2)
+        parsedCoords (map #(vec (map edn/read-string (str/split % #"," 2))) (str/split-lines coords))
+        parsedInstrs (map (fn [[_ xy num]] [(keyword xy) (edn/read-string num)]) (re-seq #"(\w)=(\d+)" instrs))]
+    [parsedCoords parsedInstrs]))
+
+(def day13-test-input (day13-input-parser "6,10
+0,14
+9,10
+0,3
+10,4
+4,11
+6,0
+6,12
+4,1
+0,13
+10,12
+3,4
+3,0
+8,4
+1,10
+2,14
+8,10
+9,0
+
+fold along y=7
+fold along x=5"))
+
+(def day13-input (day13-input-parser (slurp "resources/day13_input.txt")))
+
+(defn day13-perform-fold [coords [xy axisPos]]
+  (distinct (case xy
+             :x (map (fn [coord] (if (< (first coord) axisPos) coord [(- axisPos (- (first coord) axisPos)) (second coord)])) coords)
+             :y (map (fn [coord] (if (< (second coord) axisPos) coord [(first coord) (- axisPos (- (second coord) axisPos))])) coords))))
+
+(defn day13-part1 [[coords instrs]]
+  (count (day13-perform-fold coords (first instrs))))
+
+(day13-perform-fold (first day13-test-input) (first (second day13-test-input)))
+(day13-perform-fold [[6 0]] [:x 5])
+
+(defn day13-part2 [[coords instrs]]
+  (let [points (set (reduce day13-perform-fold coords instrs))
+        maxx (apply max (map first points))
+        maxy (apply max (map second points))]
+    (with-out-str (doseq [y (range (inc maxy))
+                          x (range (inc maxx))]
+                   (when (= 0 x) (println))
+                   (if (points [x y]) (print "#") (print "."))))))
