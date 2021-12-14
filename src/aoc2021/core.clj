@@ -662,3 +662,70 @@ fold along x=5"))
                           x (range (inc maxx))]
                    (when (= 0 x) (println))
                    (if (points [x y]) (print "#") (print "."))))))
+
+;-------------------
+
+(defn day14-parse-input [inputStr]
+  (let [[templateStr pairStr] (str/split inputStr #"\n\n" 2)
+        polymerTemplate (vec templateStr)
+        pairRules (into {} (map (fn [[_ k v]] [k (first v)]) (re-seq #"(\w\w) -> (\w)" pairStr)))]
+    [polymerTemplate pairRules]))
+
+(def day14-test-input (day14-parse-input "NNCB
+
+CH -> B
+HH -> N
+CB -> H
+NH -> C
+HB -> C
+HC -> B
+HN -> C
+NN -> C
+BH -> H
+NC -> B
+NB -> B
+BN -> B
+BB -> N
+BC -> B
+CC -> N
+CN -> C"))
+
+(def day14-input (day14-parse-input (slurp "resources/day14_input.txt")))
+
+(defn day14-perform-step [polymerTemplate pairRules]
+  (loop [firstElem (first polymerTemplate)
+         secondElem (second polymerTemplate)
+         remElems (drop 2 polymerTemplate)
+         accum [firstElem]]
+    (if (not secondElem) accum
+        (let [pair (str firstElem secondElem)
+              accum1 (if-let [newElem (pairRules pair)] (conj accum newElem) accum)
+              accum2 (conj accum1 secondElem)]
+          (recur secondElem (first remElems) (drop 1 remElems) accum2)))))
+
+(def day14-perform-recursive-step
+  (memoize (fn [polymerTemplate pairRules n]
+             (if (= n 1)
+               (let [newTemplate (day14-perform-step polymerTemplate pairRules)
+                     freqs (frequencies newTemplate)]
+                 freqs)
+               (let [newTemplate (day14-perform-step polymerTemplate pairRules)
+                     pairsToRecurseOn (map (fn [a b] [a b]) newTemplate (rest newTemplate))
+                     freqsToMinus (frequencies (rest (drop-last newTemplate)))
+                     recursedFreqs (map #(day14-perform-recursive-step % pairRules (- n 1)) pairsToRecurseOn)
+                     reducedFreqs (reduce (fn [a b] (merge-with + a b)) recursedFreqs)
+                     finalFreqs (merge-with - reducedFreqs freqsToMinus)]
+                 finalFreqs)))))
+
+(defn day14-part1 [[polymerTemplate pairRules]]
+  (let [finalPolymerTemplate (reduce (fn [oldTemplate _] (day14-perform-step oldTemplate pairRules)) polymerTemplate (range 10))
+        freqs (frequencies finalPolymerTemplate)
+        maxNumOfElem (apply max (vals freqs))
+        minNumOfElem (apply min (vals freqs))]
+    (- maxNumOfElem minNumOfElem)))
+
+(defn day14-part2 [[polymerTemplate pairRules]]
+  (let [freqs (day14-perform-recursive-step polymerTemplate pairRules 40)
+        maxNumOfElem (apply max (vals freqs))
+        minNumOfElem (apply min (vals freqs))]
+    (- maxNumOfElem minNumOfElem)))
